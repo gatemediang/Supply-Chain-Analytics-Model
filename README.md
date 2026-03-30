@@ -87,7 +87,7 @@ Urgency logic:
 ## Repository Structure
 
 - supply_chain_analytics.py: End-to-end data simulation, policy logic, KPIs, exports, and chart generation.
-- supply_chain_dashboard.html: Executive dashboard template powered by Chart.js with sample metrics and tables.
+- index.html: Executive dashboard template powered by Chart.js with sample metrics and tables (GitHub Pages entrypoint).
 - outputs/: Generated after execution (CSV, XLSX, PNG artifacts).
 - DATA_DICTIONARY.md: Field-level definitions for all generated synthetic datasets.
 
@@ -122,7 +122,7 @@ python supply_chain_analytics.py
 
 - Open CSV/XLSX files in outputs/ for analysis.
 - Use generated PNG files in reports or presentations.
-- Open supply_chain_dashboard.html in a browser for dashboard-style storytelling.
+- Open index.html in a browser for dashboard-style storytelling.
 
 ## KPI Interpretation Guide
 
