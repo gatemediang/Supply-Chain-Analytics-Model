@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SupplyIQ — Operations Revenue Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0c0f;
+    --surface:   #111418;
+    --border:    #1e2229;
+    --border2:   #262c36;
+    --text:      #e8eaf0;
+    --muted:     #6b7280;
+    --accent:    #f0c040;
+    --accent2:   #3ecfb2;
+    --danger:    #f05252;
+    --warn:      #f0864a;
+    --ok:        #52c07a;
+    --blue:      #5b9cf0;
+    --chart-h:   220px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 36px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display: flex; align-items: baseline; gap: 8px; }
+  .logo-mark {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .logo-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .header-meta {
+    display: flex; align-items: center; gap: 24px;
+  }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--ok);
+    text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ok);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+  .header-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--muted);
+  }
+
+  /* ── LAYOUT ── */
+  main { padding: 32px 36px; max-width: 1400px; margin: 0 auto; }
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── KPI STRIP ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 2px;
+    margin-bottom: 36px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .kpi-card {
+    background: var(--surface);
+    padding: 20px 22px;
+    position: relative;
+    transition: background .2s;
+  }
+  .kpi-card:hover { background: #161b22; }
+  .kpi-card + .kpi-card { border-left: 1px solid var(--border); }
+  .kpi-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: 'Fraunces', serif;
+    font-size: 26px; font-weight: 700;
+    line-height: 1; letter-spacing: -0.5px;
+  }
+  .kpi-delta {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; margin-top: 6px; color: var(--muted);
+  }
+  .kpi-accent-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  /* ── TWO-COL + THREE-COL ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .grid-65 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; margin-bottom: 20px; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 0.3px; margin-bottom: 4px;
+  }
+  .card-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--muted);
+    margin-bottom: 18px;
+  }
+  canvas { width: 100% !important; }
+
+  /* ── DONUT LEGEND ── */
+  .donut-wrap { display: flex; align-items: center; gap: 24px; }
+  .donut-legend { flex: 1; }
+  .legend-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 0; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .legend-row:last-child { border-bottom: none; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; display: inline-block; }
+  .legend-left { display: flex; align-items: center; }
+  .legend-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--accent);
+  }
+
+  /* ── TABLE ── */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table thead tr { border-bottom: 2px solid var(--border2); }
+  .data-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--muted); padding: 8px 10px; text-align: left; font-weight: 500;
+  }
+  .data-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  .data-table tbody tr:hover td { background: rgba(255,255,255,.02); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px; border-radius: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.5px; font-weight: 500;
+  }
+  .badge-critical { background: rgba(240,82,82,.15); color: var(--danger); }
+  .badge-low      { background: rgba(240,134,74,.15); color: var(--warn); }
+  .badge-healthy  { background: rgba(82,192,122,.15); color: var(--ok); }
+  .badge-excess   { background: rgba(91,156,240,.15); color: var(--blue); }
+
+  /* ── MINI BAR ── */
+  .mini-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .mini-bar-bg { flex: 1; height: 5px; background: var(--border2); border-radius: 3px; }
+  .mini-bar-fill { height: 100%; border-radius: 3px; }
+
+  /* ── ALERT BANNER ── */
+  .alert-banner {
+    background: rgba(240,82,82,.08);
+    border: 1px solid rgba(240,82,82,.3);
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .alert-icon { font-size: 20px; }
+  .alert-text b { color: var(--danger); }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 20px 36px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 1100px) {
+    .kpi-grid { grid-template-columns: repeat(3,1fr); }
+    .kpi-card + .kpi-card { border-left: none; border-top: 1px solid var(--border); }
+    .grid-3, .grid-65 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 780px) {
+    main { padding: 20px 16px; }
+    header { padding: 14px 16px; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-mark">SupplyIQ</span>
+    <span class="logo-sub">Supply Chain Intelligence · UK Operations</span>
+  </div>
+  <div class="header-meta">
+    <div class="live-badge"><div class="live-dot"></div>Live · Wk 12 2025</div>
+    <div class="header-date">Generated: 24 Mar 2025 &nbsp;|&nbsp; 12 Warehouses · 15 SKUs</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ALERT -->
+  <div class="alert-banner">
+    <div class="alert-icon">⚠️</div>
+    <div class="alert-text">
+      <b>25 SKU–warehouse combinations are at Critical stock levels</b> — reorder action required within 72 hrs.
+      Birmingham (WH02) holds the highest excess: <b>£207,864</b> in over-stocked inventory.
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="section-label">Executive Summary</div>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Stock Value</div>
+      <div class="kpi-value" style="color:var(--accent)">£7.02M</div>
+      <div class="kpi-delta">Across 12 warehouses</div>
+      <div class="kpi-accent-bar" style="background:var(--accent)"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Excess Inventory</div>
+      <div class="kpi-value" style="color:var(--blue)">£1.05M</div>
+      <div class="kpi-delta">15.0% of total stock</div>
+      <div class="kpi-accent-bar" style="background:var(--blue)"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Critical SKU–Sites</div>
+      <div class="kpi-value" style="color:var(--danger)">25</div>
+      <div class="kpi-delta">Reorder within 72 hrs</div>
+      <div class="kpi-accent-bar" style="background:var(--danger)"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Excess SKU–Sites</div>
+      <div class="kpi-value" style="color:var(--warn)">10</div>
+      <div class="kpi-delta">Over 3× reorder point</div>
+      <div class="kpi-accent-bar" style="background:var(--warn)"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Reorder Lines</div>
+      <div class="kpi-value" style="color:var(--accent2)">60</div>
+      <div class="kpi-delta">This week's batch</div>
+      <div class="kpi-accent-bar" style="background:var(--accent2)"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Reorder Spend</div>
+      <div class="kpi-value" style="color:var(--ok)">£3.39M</div>
+      <div class="kpi-delta">Recommended this week</div>
+      <div class="kpi-accent-bar" style="background:var(--ok)"></div>
+    </div>
+  </div>
+
+  <!-- ROW 1: TREND + STATUS DONUT -->
+  <div class="section-label">Demand Trend &amp; Inventory Health</div>
+  <div class="grid-65">
+    <div class="card">
+      <div class="card-title">Weekly Demand &amp; Revenue — Last 13 Weeks</div>
+      <div class="card-sub">All warehouses · all SKUs combined</div>
+      <canvas id="trendChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Inventory Health Breakdown</div>
+      <div class="card-sub">180 SKU–warehouse combinations</div>
+      <div class="donut-wrap">
+        <div style="width:140px;height:140px;flex-shrink:0"><canvas id="donutChart"></canvas></div>
+        <div class="donut-legend">
+          <div class="legend-row">
+            <div class="legend-left"><span class="legend-dot" style="background:var(--danger)"></span>Critical</div>
+            <div><span class="legend-val">25</span></div>
+          </div>
+          <div class="legend-row">
+            <div class="legend-left"><span class="legend-dot" style="background:var(--warn)"></span>Low</div>
+            <div><span class="legend-val">77</span></div>
+          </div>
+          <div class="legend-row">
+            <div class="legend-left"><span class="legend-dot" style="background:var(--ok)"></span>Healthy</div>
+            <div><span class="legend-val">68</span></div>
+          </div>
+          <div class="legend-row">
+            <div class="legend-left"><span class="legend-dot" style="background:var(--blue)"></span>Excess</div>
+            <div><span class="legend-val">10</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: EXCESS BY WH + EXCESS BY CAT -->
+  <div class="section-label">Excess Inventory Analysis</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Excess Value by Warehouse</div>
+      <div class="card-sub">Sorted by excess stock value (£)</div>
+      <canvas id="whExcessChart" height="220"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Excess Value by Category</div>
+      <div class="card-sub">Industrial dominates over-stocking</div>
+      <canvas id="catExcessChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- ROW 3: TOP EXCESS TABLE -->
+  <div class="section-label">Top Excess SKU–Warehouse Positions</div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Highest-Value Excess Inventory Lines</div>
+    <div class="card-sub">Positions exceeding 3× reorder point — liquidation or rebalancing recommended</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Warehouse</th><th>SKU</th><th>Stock on Hand</th>
+          <th>Excess Units</th><th>Excess Value</th><th>Weeks Cover</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="excessTableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- ROW 4: REORDER TABLE -->
+  <div class="section-label">Weekly Reorder Recommendations</div>
+  <div class="card">
+    <div class="card-title">Automated Reorder Queue — Week 12 · 2025</div>
+    <div class="card-sub">60 lines generated · sorted by reorder cost descending · lead times factored into urgency</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Warehouse</th><th>SKU</th><th>Stock</th>
+          <th>Reorder Point</th><th>Order Qty</th><th>Lead Time</th>
+          <th>Reorder Cost</th><th>Urgency</th>
+        </tr>
+      </thead>
+      <tbody id="reorderTableBody"></tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer>
+  <span>SupplyIQ v2.1 · Python · pandas · NumPy · scipy · Chart.js</span>
+  <span>Data refreshed: 24 Mar 2025 00:00 UTC · 52-week history · EOQ &amp; safety-stock model</span>
+</footer>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const DATA = {
+  weekly_trend: [
+    {week:"Dec 30",weekly_demand:54894,revenue:3124618},
+    {week:"Jan 06",weekly_demand:56018,revenue:3166390},
+    {week:"Jan 13",weekly_demand:57295,revenue:3213381},
+    {week:"Jan 20",weekly_demand:58802,revenue:3349818},
+    {week:"Jan 27",weekly_demand:59889,revenue:3348278},
+    {week:"Feb 03",weekly_demand:60769,revenue:3482673},
+    {week:"Feb 10",weekly_demand:61392,revenue:3407070},
+    {week:"Feb 17",weekly_demand:63752,revenue:3633526},
+    {week:"Feb 24",weekly_demand:64320,revenue:3678838},
+    {week:"Mar 03",weekly_demand:64669,revenue:3655401},
+    {week:"Mar 10",weekly_demand:64830,revenue:3669297},
+    {week:"Mar 17",weekly_demand:67049,revenue:3844918},
+    {week:"Mar 24",weekly_demand:66826,revenue:3818885},
+  ],
+  excess_by_warehouse: [
+    {city:"Birmingham", excess_value:207864},
+    {city:"Leeds",      excess_value:196358},
+    {city:"Edinburgh",  excess_value:168873},
+    {city:"London-E",   excess_value:167352},
+    {city:"Southampton",excess_value:142354},
+    {city:"Cardiff",    excess_value:57074},
+    {city:"Sheffield",  excess_value:51283},
+    {city:"Bristol",    excess_value:34189},
+    {city:"Nottingham", excess_value:13048},
+    {city:"Manchester", excess_value:9720},
+    {city:"London-W",   excess_value:6189},
+    {city:"Glasgow",    excess_value:114},
+  ],
+  excess_by_category: [
+    {category:"Industrial",  excess_value:959648},
+    {category:"Electronics", excess_value:76796},
+    {category:"Lighting",    excess_value:17500},
+    {category:"Accessories", excess_value:474},
+  ],
+  top_excess: [
+    {city:"Leeds",       product_name:"Sensor Unit",   stock_on_hand:3018, excess_units:1983, excess_value:174504, weeks_of_stock:5.99},
+    {city:"London-E",    product_name:"Control Board",  stock_on_hand:3798, excess_units:1329, excess_value:159480, weeks_of_stock:6.33},
+    {city:"Edinburgh",   product_name:"Control Board",  stock_on_hand:3453, excess_units:1299, excess_value:155880, weeks_of_stock:5.76},
+    {city:"Birmingham",  product_name:"Sensor Unit",   stock_on_hand:3026, excess_units:1499, excess_value:131912, weeks_of_stock:6.11},
+    {city:"Southampton", product_name:"Control Board",  stock_on_hand:2430, excess_units:915,  excess_value:109800, weeks_of_stock:4.12},
+    {city:"Birmingham",  product_name:"Fuse Box",      stock_on_hand:2042, excess_units:836,  excess_value:62700,  weeks_of_stock:4.35},
+    {city:"Sheffield",   product_name:"Relay Switch",  stock_on_hand:1490, excess_units:689,  excess_value:37895,  weeks_of_stock:3.82},
+    {city:"Southampton", product_name:"Junction Box",  stock_on_hand:1331, excess_units:992,  excess_value:31744,  weeks_of_stock:6.02},
+  ],
+  top_reorder: [
+    {city:"Manchester", product_name:"Control Board",  stock_on_hand:537, reorder_point:918,  reorder_qty:2381, reorder_cost:285720, lead_time_days:9},
+    {city:"Cardiff",    product_name:"Control Board",  stock_on_hand:631, reorder_point:812,  reorder_qty:2369, reorder_cost:284280, lead_time_days:8},
+    {city:"Edinburgh",  product_name:"Sensor Unit",   stock_on_hand:745, reorder_point:896,  reorder_qty:2092, reorder_cost:184096, lead_time_days:10},
+    {city:"Manchester", product_name:"Sensor Unit",   stock_on_hand:550, reorder_point:890,  reorder_qty:2077, reorder_cost:182776, lead_time_days:10},
+    {city:"Bristol",    product_name:"Sensor Unit",   stock_on_hand:688, reorder_point:785,  reorder_qty:2035, reorder_cost:179080, lead_time_days:9},
+    {city:"London-E",   product_name:"Sensor Unit",   stock_on_hand:691, reorder_point:1124, reorder_qty:2018, reorder_cost:177584, lead_time_days:13},
+    {city:"Cardiff",    product_name:"Sensor Unit",   stock_on_hand:491, reorder_point:864,  reorder_qty:2016, reorder_cost:177408, lead_time_days:10},
+    {city:"Glasgow",    product_name:"Sensor Unit",   stock_on_hand:755, reorder_point:849,  reorder_qty:1981, reorder_cost:174328, lead_time_days:10},
+  ]
+};
+
+const fmt = (n) => '£' + n.toLocaleString('en-GB');
+const fmtN = (n) => n.toLocaleString('en-GB');
+
+// ── CHART DEFAULTS ────────────────────────────────────────────────────────
+Chart.defaults.color = '#6b7280';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 10;
+
+const gridOpts = {
+  color: 'rgba(255,255,255,0.04)',
+  drawBorder: false,
+};
+
+// ── TREND CHART ───────────────────────────────────────────────────────────
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+const trendGrad = trendCtx.createLinearGradient(0,0,0,200);
+trendGrad.addColorStop(0,'rgba(240,192,64,0.2)');
+trendGrad.addColorStop(1,'rgba(240,192,64,0)');
+
+new Chart(trendCtx, {
+  type: 'line',
+  data: {
+    labels: DATA.weekly_trend.map(d => d.week),
+    datasets: [
+      {
+        label: 'Revenue (£)',
+        data: DATA.weekly_trend.map(d => d.revenue),
+        borderColor: '#f0c040',
+        backgroundColor: trendGrad,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: '#f0c040',
+        tension: 0.4,
+        fill: true,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Units Demanded',
+        data: DATA.weekly_trend.map(d => d.weekly_demand),
+        borderColor: '#3ecfb2',
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        borderDash: [4,3],
+        pointRadius: 2,
+        pointBackgroundColor: '#3ecfb2',
+        tension: 0.4,
+        yAxisID: 'y2',
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: true, position: 'top',
+        labels: { boxWidth: 10, padding: 16, color: '#6b7280', font:{size:10} }
+      },
+      tooltip: {
+        backgroundColor: '#161b22',
+        borderColor: '#262c36',
+        borderWidth: 1,
+        callbacks: {
+          label: ctx => ctx.datasetIndex===0
+            ? ' ' + fmt(ctx.raw)
+            : ' ' + fmtN(ctx.raw) + ' units'
+        }
+      }
+    },
+    scales: {
+      x: { grid: gridOpts, ticks: { maxRotation: 0 } },
+      y: {
+        grid: gridOpts,
+        position: 'left',
+        ticks: { callback: v => '£' + (v/1e6).toFixed(1) + 'M' }
+      },
+      y2: {
+        grid: { display: false },
+        position: 'right',
+        ticks: { callback: v => (v/1000).toFixed(0) + 'k' }
+      }
+    }
+  }
+});
+
+// ── DONUT ─────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('donutChart').getContext('2d'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Critical','Low','Healthy','Excess'],
+    datasets: [{
+      data: [25, 77, 68, 10],
+      backgroundColor: ['#f05252','#f0864a','#52c07a','#5b9cf0'],
+      borderWidth: 2,
+      borderColor: '#111418',
+      hoverBorderColor: '#1e2229',
+    }]
+  },
+  options: {
+    cutout: '68%',
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': ' + ctx.raw } } }
+  }
+});
+
+// ── WAREHOUSE EXCESS BAR ──────────────────────────────────────────────────
+const whColors = DATA.excess_by_warehouse.map((d,i) =>
+  i === 0 ? '#f05252' : i < 4 ? '#f0864a' : '#5b9cf0'
+);
+new Chart(document.getElementById('whExcessChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: DATA.excess_by_warehouse.map(d => d.city),
+    datasets: [{
+      data: DATA.excess_by_warehouse.map(d => d.excess_value),
+      backgroundColor: whColors,
+      borderRadius: 4,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.raw) } }
+    },
+    scales: {
+      x: {
+        grid: gridOpts,
+        ticks: { callback: v => '£' + (v/1000).toFixed(0) + 'k' }
+      },
+      y: { grid: { display: false }, ticks: { font: {size: 10} } }
+    }
+  }
+});
+
+// ── CATEGORY EXCESS BAR ───────────────────────────────────────────────────
+new Chart(document.getElementById('catExcessChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: DATA.excess_by_category.map(d => d.category),
+    datasets: [{
+      data: DATA.excess_by_category.map(d => d.excess_value),
+      backgroundColor: ['#f05252','#f0864a','#3ecfb2','#6b7280'],
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.raw) } }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: {
+        grid: gridOpts,
+        ticks: { callback: v => '£' + (v/1000).toFixed(0) + 'k' }
+      }
+    }
+  }
+});
+
+// ── EXCESS TABLE ──────────────────────────────────────────────────────────
+const maxExcess = Math.max(...DATA.top_excess.map(d => d.excess_value));
+document.getElementById('excessTableBody').innerHTML = DATA.top_excess.map(d => {
+  const pct = (d.excess_value / maxExcess * 100).toFixed(1);
+  const wks = d.weeks_of_stock.toFixed(1);
+  const statusBadge = d.weeks_of_stock > 5 ? '<span class="badge badge-excess">Excess</span>' : '<span class="badge badge-low">Elevated</span>';
+  return `<tr>
+    <td><b>${d.city}</b></td>
+    <td>${d.product_name}</td>
+    <td style="font-family:'DM Mono',monospace">${fmtN(d.stock_on_hand)}</td>
+    <td style="color:var(--blue);font-family:'DM Mono',monospace">${fmtN(d.excess_units)}</td>
+    <td>
+      <div class="mini-bar-wrap">
+        <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${pct}%;background:var(--blue)"></div></div>
+        <span style="font-family:'DM Mono',monospace;color:var(--accent);font-size:11px">${fmt(d.excess_value)}</span>
+      </div>
+    </td>
+    <td style="font-family:'DM Mono',monospace">${wks}w</td>
+    <td>${statusBadge}</td>
+  </tr>`;
+}).join('');
+
+// ── REORDER TABLE ─────────────────────────────────────────────────────────
+document.getElementById('reorderTableBody').innerHTML = DATA.top_reorder.map(d => {
+  const stockPct = Math.round(d.stock_on_hand / d.reorder_point * 100);
+  const urgency = d.lead_time_days >= 12 ? '<span class="badge badge-critical">URGENT</span>'
+    : d.lead_time_days >= 9 ? '<span class="badge badge-low">High</span>'
+    : '<span class="badge badge-healthy">Normal</span>';
+  return `<tr>
+    <td><b>${d.city}</b></td>
+    <td>${d.product_name}</td>
+    <td>
+      <div class="mini-bar-wrap">
+        <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${Math.min(stockPct,100)}%;background:var(--danger)"></div></div>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--danger)">${fmtN(d.stock_on_hand)}</span>
+      </div>
+    </td>
+    <td style="font-family:'DM Mono',monospace;color:var(--muted)">${fmtN(d.reorder_point)}</td>
+    <td style="font-family:'DM Mono',monospace;color:var(--accent2)">${fmtN(d.reorder_qty)}</td>
+    <td style="font-family:'DM Mono',monospace">${d.lead_time_days}d</td>
+    <td style="font-family:'DM Mono',monospace;color:var(--ok)">${fmt(d.reorder_cost)}</td>
+    <td>${urgency}</td>
+  </tr>`;
+}).join('');
+</script>
+</body>
+</html>
